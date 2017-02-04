@@ -1,0 +1,98 @@
+model HealthNetwork
+
+class HealthProvider
+attributes 
+  password : String
+  username : String 
+end 
+
+class WorkTime 
+attributes 
+  day : String
+  TimeSlot : String
+end 
+
+
+class Patient
+attributes 
+  Age : Integer
+  Name : String
+end 
+
+class CareGiver
+attributes 
+  HomePhone : String
+  Address : String
+  Age : Integer
+end
+
+class HealthRecord
+attributes 
+  TreatmentDate: String
+end
+
+class Payment 
+attributes 
+  DueDate: String
+  IssuedDate: String
+  TimePeriod : Integer 
+  amount : Integer
+end
+
+
+class CreditCard < Payment
+attributes 
+  Number : String
+  AccountBalance: Integer
+end
+
+
+association Own between
+  WorkTime[1..*]
+  HealthProvider[1]
+end
+
+
+association AssociatedTo between
+  Patient[1]
+  CareGiver[1..*]
+end
+
+
+association Charge between
+  HealthRecord[1]
+  Payment[1]
+end
+
+
+constraints
+
+-- 1/ health provider must have username and password 
+context HealthProvider
+  inv: self.username <>null and self.password <>null
+
+ 
+-- 2/ health provider should be available at least 3 times 
+context HealthProvider
+inv: self.workTime->size()>=3 
+
+
+-- 3/ each patient must have adults caregivers
+context CareGiver
+inv: self.Age >= 18
+
+
+-- 4/ each patient must have at least 2 caregiver with fixed phone and address 
+context Patient
+inv: self.careGiver ->select(Address<>null and HomePhone<>null)->size()>=2
+
+
+-- 5/ Account balance must be enough to charge the payment amount 
+context Payment
+inv: self.amount <= self.oclAsType(CreditCard).AccountBalance
+
+
+-- 6/ Patient can not exceed one week to pay 
+-- Note that TimePeriod is the difference between due date and Issue Date ( Number of Days)
+context Payment  
+inv : self.TimePeriod <= 7
